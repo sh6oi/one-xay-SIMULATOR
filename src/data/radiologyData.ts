@@ -3,6 +3,7 @@ import type {
   ClinicRank,
   ExamProtocol,
   PatientCase,
+  PatientPosture,
   ProjectionType,
   ScanEvaluation,
   UpgradeId,
@@ -57,57 +58,161 @@ export const PROJECTION_LABELS_AR: Record<ProjectionType, string> = {
   SAGITTAL: 'رنين سهمي (Sagittal)',
 };
 
+export const POSTURE_LABELS_AR: Record<PatientPosture, string> = {
+  SUPINE: 'مستلقٍ على الظهر (Supine)',
+  PRONE: 'مستلقٍ على البطن (Prone)',
+  TABLE_LEFT_LAT: 'نائم جانبياً — يسار (Left Lateral)',
+  TABLE_RIGHT_LAT: 'نائم جانبياً — يمين (Right Lateral)',
+  ERECT_PA: 'واقف (Erect) · خلفي-أمامي PA',
+  ERECT_AP: 'واقف (Erect) · أمامي-خلفي AP',
+  ERECT_LEFT_LAT: 'واقف (Erect) · جانبي أيسر (Left Lat)',
+  ERECT_RIGHT_LAT: 'واقف (Erect) · جانبي أيمن (Right Lat)',
+};
+
+export const POSTURE_SHORT_AR: Record<PatientPosture, string> = {
+  SUPINE: 'Supine (على الظهر)',
+  PRONE: 'Prone (على البطن)',
+  TABLE_LEFT_LAT: 'Left Lat (طاولة)',
+  TABLE_RIGHT_LAT: 'Right Lat (طاولة)',
+  ERECT_PA: 'Erect PA (واقف)',
+  ERECT_AP: 'Erect AP (واقف)',
+  ERECT_LEFT_LAT: 'Erect Left Lat',
+  ERECT_RIGHT_LAT: 'Erect Right Lat',
+};
+
 export const EXAMS: ExamProtocol[] = [
   {
     id: 'chest_pa',
-    titleAr: 'أشعة الصدر',
-    titleEn: 'Chest X-Ray (PA)',
+    titleAr: 'أشعة الصدر (واقف PA)',
+    titleEn: 'Chest X-Ray (Erect PA)',
     region: 'chest',
     regionLabelAr: 'الصدر',
     modality: 'XRAY',
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'PA',
     projectionLabelAr: 'خلفي-أمامي (PA)',
+    recommendedPosture: 'ERECT_PA',
+    postureLabelAr: 'واقف (Erect) · PA',
     kvpRange: [105, 125],
     masRange: [2, 6],
     baseFee: 15,
     imagePath: REGION_SCAN_IMAGES.chest,
     clinicalTipAr:
-      'يُفضّل وضع PA بجهد عالٍ (105–125 kVp) لاختراق الأضلاع وإظهار أنسجة الرئة بوضوح مع كتم النفس.',
+      'يُقف المريض بوضع Erect PA مواجهاً للحامل الجداري مع كتم النفس بجهد 105–125 kVp لإظهار الرئتين بالكامل.',
+  },
+  {
+    id: 'chest_lat_left',
+    titleAr: 'أشعة الصدر الجانبية (واقف يسار)',
+    titleEn: 'Chest X-Ray (Erect Left Lateral)',
+    region: 'chest',
+    regionLabelAr: 'الصدر',
+    modality: 'XRAY',
+    modalityLabelAr: 'أشعة سينية',
+    recommendedProjection: 'LATERAL',
+    projectionLabelAr: 'جانبي (Lateral)',
+    recommendedPosture: 'ERECT_LEFT_LAT',
+    postureLabelAr: 'واقف (Erect) · جانبي أيسر',
+    kvpRange: [110, 128],
+    masRange: [4, 9],
+    baseFee: 15,
+    imagePath: REGION_SCAN_IMAGES.chest,
+    clinicalTipAr:
+      'الوضع الجانبي الأيسر الواقف (Left Lateral) يقرّب القلب من المستقبل لتقليل التكبير مع رفع الذراعين للأعلى.',
   },
   {
     id: 'cervical_lat',
-    titleAr: 'أشعة الفقرات العنقية',
-    titleEn: 'Cervical Spine (Lateral)',
+    titleAr: 'أشعة الفقرات العنقية (واقف جانبي)',
+    titleEn: 'Cervical Spine (Erect Lateral)',
     region: 'cervical',
     regionLabelAr: 'الرقبة',
     modality: 'XRAY',
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'LATERAL',
     projectionLabelAr: 'جانبي (Lateral)',
+    recommendedPosture: 'ERECT_RIGHT_LAT',
+    postureLabelAr: 'واقف (Erect) · جانبي أيمن',
     kvpRange: [68, 82],
     masRange: [12, 22],
     baseFee: 15,
     imagePath: REGION_SCAN_IMAGES.cervical,
     clinicalTipAr:
-      'الوضع الجانبي يُظهر الفقرات C1 إلى C7 واستقامة العمود العنقي مع خفض الكتفين.',
+      'الوضع الجانبي الواقف (Erect Lateral) يُظهر الفقرات C1–C7 واستقامة العمود العنقي مع خفض الكتفين.',
   },
   {
     id: 'lumbar_ap',
-    titleAr: 'أشعة العمود الفقري القطني',
-    titleEn: 'Lumbar Spine (AP)',
+    titleAr: 'أشعة القطنية (مستلقٍ على الظهر)',
+    titleEn: 'Lumbar Spine (Supine AP)',
     region: 'lumbar',
     regionLabelAr: 'أسفل الظهر',
     modality: 'XRAY',
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'AP',
     projectionLabelAr: 'أمامي-خلفي (AP)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [74, 88],
     masRange: [24, 40],
     baseFee: 15,
     imagePath: REGION_SCAN_IMAGES.lumbar,
     clinicalTipAr:
-      'منطقة أسفل الظهر سميكة نسبياً، لذلك تحتاج كمية إشعاع أعلى (24–40 mAs) لوضوح الفقرات L1–L5.',
+      'يستلقي المريض على ظهره (Supine) لتصوير الفقرات L1–L5 بجرعة 24–40 mAs لإبراز تفاصيل العظام.',
+  },
+  {
+    id: 'lumbar_lat_left',
+    titleAr: 'أشعة القطنية الجانبية (نائم يسار)',
+    titleEn: 'Lumbar Spine (Left Lateral)',
+    region: 'lumbar',
+    regionLabelAr: 'أسفل الظهر',
+    modality: 'XRAY',
+    modalityLabelAr: 'أشعة سينية',
+    recommendedProjection: 'LATERAL',
+    projectionLabelAr: 'جانبي (Lateral)',
+    recommendedPosture: 'TABLE_LEFT_LAT',
+    postureLabelAr: 'نائم جانبياً · يسار (Left Lat)',
+    kvpRange: [80, 95],
+    masRange: [28, 45],
+    baseFee: 15,
+    imagePath: REGION_SCAN_IMAGES.lumbar,
+    clinicalTipAr:
+      'يستلقي المريض على جانبه الأيسر (Left Lateral) مع ثني الركبتين قليلاً لاستقرار الحوض وإظهار المسافات الغضروفية.',
+  },
+  {
+    id: 'spine_prone',
+    titleAr: 'أشعة الظهر والعمود الفقري (انبطاح)',
+    titleEn: 'Thoracolumbar Spine (Prone PA)',
+    region: 'lumbar',
+    regionLabelAr: 'الظهر والعمود',
+    modality: 'XRAY',
+    modalityLabelAr: 'أشعة سينية',
+    recommendedProjection: 'PA',
+    projectionLabelAr: 'خلفي-أمامي (PA)',
+    recommendedPosture: 'PRONE',
+    postureLabelAr: 'على البطن (Prone)',
+    kvpRange: [74, 88],
+    masRange: [22, 38],
+    baseFee: 15,
+    imagePath: REGION_SCAN_IMAGES.lumbar,
+    clinicalTipAr:
+      'وضعية الانبطاح على البطن (Prone) تُستخدم لتقييم انحناءات العمود الفقري وتقليل تباعد الأشعة للفقرات.',
+  },
+  {
+    id: 'chest_decubitus_right',
+    titleAr: 'أشعة الصدر الجانبية (نائم يمين)',
+    titleEn: 'Chest Decubitus (Right Lateral)',
+    region: 'chest',
+    regionLabelAr: 'الصدر',
+    modality: 'XRAY',
+    modalityLabelAr: 'أشعة سينية',
+    recommendedProjection: 'LATERAL',
+    projectionLabelAr: 'جانبي (Lateral)',
+    recommendedPosture: 'TABLE_RIGHT_LAT',
+    postureLabelAr: 'نائم جانبياً · يمين (Right Lat)',
+    kvpRange: [100, 120],
+    masRange: [3, 8],
+    baseFee: 15,
+    imagePath: REGION_SCAN_IMAGES.chest,
+    clinicalTipAr:
+      'الاستلقاء على الجانب الأيمن (Right Lateral Decubitus) يساعد في رصد تجمعات السوائل الجنبية الحرة.',
   },
   {
     id: 'hand_pa',
@@ -119,6 +224,8 @@ export const EXAMS: ExamProtocol[] = [
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'PA',
     projectionLabelAr: 'خلفي-أمامي (PA)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [48, 60],
     masRange: [2, 5],
     baseFee: 15,
@@ -136,6 +243,8 @@ export const EXAMS: ExamProtocol[] = [
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'AP',
     projectionLabelAr: 'أمامي-خلفي (AP)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [58, 70],
     masRange: [6, 12],
     baseFee: 15,
@@ -146,36 +255,40 @@ export const EXAMS: ExamProtocol[] = [
   {
     id: 'pelvis_ap',
     titleAr: 'أشعة الحوض والورك',
-    titleEn: 'Pelvis (AP)',
+    titleEn: 'Pelvis (Supine AP)',
     region: 'pelvis',
     regionLabelAr: 'الحوض',
     modality: 'XRAY',
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'AP',
     projectionLabelAr: 'أمامي-خلفي (AP)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [74, 86],
     masRange: [20, 32],
     baseFee: 15,
     imagePath: REGION_SCAN_IMAGES.pelvis,
     clinicalTipAr:
-      'تدوير القدمين للداخل قليلاً (15 درجة) يُظهر عنق عظم الفخذ بالكامل مع استخدام واقي الحماية عند الإمكان.',
+      'الاستلقاء على الظهر (Supine) مع تدوير القدمين للداخل قليلاً يُظهر عنق عظم الفخذ بالكامل.',
   },
   {
     id: 'skull_ap',
-    titleAr: 'أشعة الجمجمة والجيوب',
-    titleEn: 'Skull & Sinuses (AP)',
+    titleAr: 'أشعة الجمجمة والجيوب (واقف AP)',
+    titleEn: 'Skull & Sinuses (Erect AP)',
     region: 'head',
     regionLabelAr: 'الرأس',
     modality: 'XRAY',
     modalityLabelAr: 'أشعة سينية',
     recommendedProjection: 'AP',
     projectionLabelAr: 'أمامي-خلفي (AP)',
+    recommendedPosture: 'ERECT_AP',
+    postureLabelAr: 'واقف (Erect) · AP',
     kvpRange: [70, 82],
     masRange: [14, 24],
     baseFee: 15,
     imagePath: REGION_SCAN_IMAGES.head,
     clinicalTipAr:
-      'تثبيت الرأس بوضعية مستقيمة وضبط 70–82 kVp يوضح عظام القحف والجيوب الأنفية.',
+      'الوضعية القائمة (Erect AP) ضرورية لتصوير الجيوب الأنفية وكشف أي مستويات سوائل هوائية.',
   },
   {
     id: 'ct_chest',
@@ -187,12 +300,14 @@ export const EXAMS: ExamProtocol[] = [
     modalityLabelAr: 'أشعة مقطعية CT',
     recommendedProjection: 'AXIAL',
     projectionLabelAr: 'مقطعي محوري (Axial)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [115, 130],
     masRange: [30, 48],
     baseFee: 85,
     imagePath: CT_SCAN_IMAGE,
     clinicalTipAr:
-      'التصوير المقطعي المحوري يعطي شرائح دقيقة ثلاثية الأبعاد للرئة والأوعية الدموية.',
+      'التصوير المقطعي المحوري يعطي شرائح دقيقة ثلاثية الأبعاد للرئة والأوعية الدموية بوضع Supine.',
   },
   {
     id: 'mri_lumbar',
@@ -204,6 +319,8 @@ export const EXAMS: ExamProtocol[] = [
     modalityLabelAr: 'رنين مغناطيسي MRI',
     recommendedProjection: 'SAGITTAL',
     projectionLabelAr: 'رنين سهمي (Sagittal)',
+    recommendedPosture: 'SUPINE',
+    postureLabelAr: 'على الظهر (Supine)',
     kvpRange: [80, 100],
     masRange: [20, 35],
     baseFee: 150,
@@ -383,6 +500,26 @@ const EXAM_SCENARIOS: Record<
       'تكثف رئوي بسيط يستدعي المتابعة الدوائية',
     ],
   },
+  chest_lat_left: {
+    complaints: [
+      'متابعة التهاب رئوي في الفص السفلي يتطلب تصويراً جانبياً',
+      'فحص تكميلي للصدر بالوضع الواقف الجانبي الأيسر',
+    ],
+    findings: [
+      'الزاوية الضلعية الحجابية الخلفية صافية وخالية من الارتشاح',
+      'عتامة محدودة خلف القلب تستدعي المتابعة',
+    ],
+  },
+  chest_decubitus_right: {
+    complaints: [
+      'اشتباه بانصباب جنبي في الرئة اليمنى يستدعي التصوير بوضع الاستلقاء الجانبي الأيمن',
+      'ألم بالصدر مع صعوبة الوقوف الطويل أثناء الفحص',
+    ],
+    findings: [
+      'عدم وجود سوائل حرة متحركة في الجنب الأيمن',
+      'طبقة ارتشاح جنبي بسيطة واضحة بالوضع الجانبي الأيمن',
+    ],
+  },
   cervical_lat: {
     complaints: [
       'تيبس وألم في الرقبة يمتد إلى الكتف',
@@ -405,6 +542,26 @@ const EXAM_SCENARIOS: Record<
       'الفقرات القطنية L1-L5 سليمة ومنتظمة الاصطفاف',
       'بداية خشونة وتضيق خفيف بين L4-L5',
       'التواء عضلي قطني دون إصابات عظمية',
+    ],
+  },
+  lumbar_lat_left: {
+    complaints: [
+      'تقييم المسافة الغضروفية للفقرات القطنية بالاستلقاء على الجانب الأيسر',
+      'ألم متزايد أسفل الظهر عند الانحناء',
+    ],
+    findings: [
+      'استقامة طبيعية للمسافات الغضروفية القطنية دون انزلاق فقاري',
+      'تضيق خفيف في الحيز الغضروفي L5-S1',
+    ],
+  },
+  spine_prone: {
+    complaints: [
+      'تقييم انحناء العمود الفقري بوضعية الاستلقاء على البطن (Prone)',
+      'ألم في منتصف الظهر بعد مجهود بدني',
+    ],
+    findings: [
+      'الفقرات الصدرية والقطنية متناسقة دون انحراف جانبي ملحوظ',
+      'التواء عضلي في عضلات الظهر الوسطى',
     ],
   },
   hand_pa: {
@@ -550,6 +707,7 @@ export function evaluateExposure(params: {
   exam: ExamProtocol;
   selectedRegion: BodyRegion;
   selectedProjection: ProjectionType;
+  selectedPosture: PatientPosture;
   kvp: number;
   mas: number;
   shieldUsed: boolean;
@@ -560,6 +718,7 @@ export function evaluateExposure(params: {
     exam,
     selectedRegion,
     selectedProjection,
+    selectedPosture,
     kvp,
     mas,
     shieldUsed,
@@ -589,11 +748,27 @@ export function evaluateExposure(params: {
     };
   }
 
+  if (selectedPosture !== exam.recommendedPosture) {
+    return {
+      success: false,
+      reasonCode: 'WRONG_POSTURE',
+      titleAr: 'وضعية المريض غير مطابقة!',
+      feedbackAr: `الوضعية المطلوبة لهذا الفحص هي: ${POSTURE_LABELS_AR[exam.recommendedPosture]}، بينما الوضعية الحالية هي ${POSTURE_LABELS_AR[selectedPosture]}. عدّل وضعية المريض في المشهد ثلاثي الأبعاد وأعد التصوير.`,
+      targetRegionScanned: selectedRegion,
+      exposureDelta: 0,
+      baseEarned: 0,
+      safetyBonus: 0,
+      qualityBonus: 0,
+      totalEarned: 0,
+      filmConsumed,
+    };
+  }
+
   if (selectedProjection !== exam.recommendedProjection) {
     return {
       success: false,
       reasonCode: 'WRONG_PROJECTION',
-      titleAr: 'وضعية تصوير غير مطابقة',
+      titleAr: 'وضعية إسقاط غير مطابقة',
       feedbackAr: `البروتوكول المطلوب هو ${exam.projectionLabelAr}. يُرجى تعديل وضعية التصوير وإعادة المحاولة.`,
       targetRegionScanned: selectedRegion,
       exposureDelta: 0,

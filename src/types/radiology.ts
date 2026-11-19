@@ -11,6 +11,16 @@ export type Modality = 'XRAY' | 'CT' | 'MRI';
 
 export type ProjectionType = 'PA' | 'AP' | 'LATERAL' | 'AXIAL' | 'SAGITTAL';
 
+export type PatientPosture =
+  | 'SUPINE'
+  | 'PRONE'
+  | 'TABLE_LEFT_LAT'
+  | 'TABLE_RIGHT_LAT'
+  | 'ERECT_PA'
+  | 'ERECT_AP'
+  | 'ERECT_LEFT_LAT'
+  | 'ERECT_RIGHT_LAT';
+
 export interface TechProfile {
   uid: string;
   name: string;
@@ -27,6 +37,8 @@ export interface ExamProtocol {
   modalityLabelAr: string;
   recommendedProjection: ProjectionType;
   projectionLabelAr: string;
+  recommendedPosture: PatientPosture;
+  postureLabelAr: string;
   kvpRange: [number, number];
   masRange: [number, number];
   baseFee: number;
@@ -53,6 +65,7 @@ export interface ScanEvaluation {
     | 'OPTIMAL'
     | 'WRONG_REGION'
     | 'WRONG_PROJECTION'
+    | 'WRONG_POSTURE'
     | 'UNDEREXPOSED'
     | 'OVEREXPOSED';
   titleAr: string;
@@ -78,6 +91,7 @@ export interface CompletedCase {
   kvpUsed: number;
   masUsed: number;
   shieldUsed: boolean;
+  postureUsed?: PatientPosture;
   timestamp: number;
 }
 

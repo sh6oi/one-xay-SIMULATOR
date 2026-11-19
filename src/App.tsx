@@ -23,6 +23,7 @@ import type {
   ClinicSaveState,
   CompletedCase,
   PatientCase,
+  PatientPosture,
   ProjectionType,
   ScanEvaluation,
   ScreenMode,
@@ -37,6 +38,7 @@ import {
   CLINIC_ROOM_IMAGE,
   FILM_CARTON_COST,
   FILM_CARTON_SIZE,
+  POSTURE_LABELS_AR,
   PROJECTION_LABELS_AR,
   REGION_LABELS_AR,
   UPGRADES,
@@ -54,7 +56,7 @@ import {
   type AuthResult,
 } from './firebase';
 import {AuthScreen} from './components/AuthScreen';
-import {PatientTableStage} from './components/PatientTableStage';
+import {RadiologyRoom3D} from './components/RadiologyRoom3D';
 import {RadiographDisplay} from './components/RadiographDisplay';
 import {ShopView} from './components/ShopView';
 import {PatientLogView} from './components/PatientLogView';
@@ -87,8 +89,8 @@ function sanitizeSaveState(raw: Partial<ClinicSaveState> | null): ClinicSaveStat
 function buildStarterQueue(upgrades: UpgradeId[]): PatientCase[] {
   return [
     {...generatePatient(upgrades), examId: 'chest_pa'},
-    {...generatePatient(upgrades), examId: 'cervical_lat'},
     {...generatePatient(upgrades), examId: 'lumbar_ap'},
+    {...generatePatient(upgrades), examId: 'spine_prone'},
   ];
 }
 
@@ -105,6 +107,8 @@ export default function App() {
 
   // Console Control State
   const [selectedRegion, setSelectedRegion] = useState<BodyRegion>('chest');
+  const [selectedPosture, setSelectedPosture] =
+    useState<PatientPosture>('ERECT_PA');
   const [selectedProjection, setSelectedProjection] =
     useState<ProjectionType>('PA');
   const [kvp, setKvp] = useState<number>(110);
@@ -123,6 +127,7 @@ export default function App() {
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
   const [roomImgError, setRoomImgError] = useState<boolean>(false);
 
+  const exposeTimerRef = useRef<number | null>(null);
   const developTimerRef = useRef<number | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const cloudSyncTimerRef = useRef<number | null>(null);
@@ -184,6 +189,7 @@ export default function App() {
 
   useEffect(() => {
     return () => {
+      if (exposeTimerRef.current) window.clearTimeout(exposeTimerRef.current);
       if (developTimerRef.current) window.clearTimeout(developTimerRef.current);
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
       if (cloudSyncTimerRef.current) window.clearTimeout(cloudSyncTimerRef.current);
@@ -282,9 +288,69 @@ export default function App() {
     showToast('تم تجهيز المريض وتثبيت الوضعية (+$2 مكافأة جودة)');
   };
 
+  const handleSelectPosture = (posture: PatientPosture) => {
+    if (isDeveloping || isExposing || Boolean(currentEvaluation)) return;
+    setSelectedPosture(posture);
+    if (requestedExam.modality === 'CT' || requestedExam.modality === 'MRI') {
+      return;
+    }
+    if (posture === 'ERECT_PA' || posture === 'PRONE') {
+      setSelectedProjection('PA');
+    } else if (posture === 'ERECT_AP') {
+      setSelectedProjection('AP');
+    } else if (
+      posture === 'ERECT_LEFT_LAT' ||
+      posture === 'ERECT_RIGHT_LAT' ||
+      posture === 'TABLE_LEFT_LAT' ||
+      posture === 'TABLE_RIGHT_LAT'
+    ) {
+      setSelectedProjection('LATERAL');
+    } else if (posture === 'SUPINE' && selectedProjection === 'LATERAL') {
+      setSelectedProjection('AP');
+    }
+  };
+
+  const handleSelectProjection = (proj: ProjectionType) => {
+    setSelectedProjection(proj);
+    const isErect = selectedPosture.startsWith('ERECT_');
+    if (proj === 'AXIAL' || proj === 'SAGITTAL') {
+      setSelectedPosture('SUPINE');
+      return;
+    }
+    if (proj === 'LATERAL') {
+      if (isErect) {
+        if (
+          selectedPosture !== 'ERECT_LEFT_LAT' &&
+          selectedPosture !== 'ERECT_RIGHT_LAT'
+        ) {
+          setSelectedPosture('ERECT_LEFT_LAT');
+        }
+      } else if (
+        selectedPosture !== 'TABLE_LEFT_LAT' &&
+        selectedPosture !== 'TABLE_RIGHT_LAT'
+      ) {
+        setSelectedPosture('TABLE_LEFT_LAT');
+      }
+    } else if (proj === 'PA') {
+      if (isErect) setSelectedPosture('ERECT_PA');
+      else if (
+        selectedPosture === 'TABLE_LEFT_LAT' ||
+        selectedPosture === 'TABLE_RIGHT_LAT'
+      ) {
+        setSelectedPosture('SUPINE');
+      }
+    } else if (proj === 'AP') {
+      if (isErect) setSelectedPosture('ERECT_AP');
+      else if (selectedPosture !== 'SUPINE') {
+        setSelectedPosture('SUPINE');
+      }
+    }
+  };
+
   const handleAutoCalibrate = () => {
     if (!hasProtocolAssist || !activePatient) return;
     setSelectedRegion(requestedExam.region);
+    setSelectedPosture(requestedExam.recommendedPosture);
     setSelectedProjection(requestedExam.recommendedProjection);
     setKvp(
       Math.round((requestedExam.kvpRange[0] + requestedExam.kvpRange[1]) / 2)
@@ -310,12 +376,12 @@ export default function App() {
 
     soundFx.playExpose();
     setIsExposing(true);
-    window.setTimeout(() => setIsExposing(false), 180);
 
     const evaluation = evaluateExposure({
       exam: requestedExam,
       selectedRegion,
       selectedProjection,
+      selectedPosture,
       kvp,
       mas,
       shieldUsed: hasLeadShield && shieldUsed,
@@ -333,17 +399,23 @@ export default function App() {
       }));
     }
 
-    const developDelay = hasDR ? 240 : hasAutoProc ? 480 : 1250;
-    setIsDeveloping(true);
-
+    if (exposeTimerRef.current) window.clearTimeout(exposeTimerRef.current);
     if (developTimerRef.current) window.clearTimeout(developTimerRef.current);
-    developTimerRef.current = window.setTimeout(() => {
-      setIsDeveloping(false);
-      setCurrentEvaluation(evaluation);
-      if (!evaluation.success) {
-        soundFx.playError();
-      }
-    }, developDelay);
+
+    // Let the 3D X-ray tube drop & cyan exposure cone animate for 680ms before developing
+    exposeTimerRef.current = window.setTimeout(() => {
+      setIsExposing(false);
+      const developDelay = hasDR ? 220 : hasAutoProc ? 420 : 950;
+      setIsDeveloping(true);
+
+      developTimerRef.current = window.setTimeout(() => {
+        setIsDeveloping(false);
+        setCurrentEvaluation(evaluation);
+        if (!evaluation.success) {
+          soundFx.playError();
+        }
+      }, developDelay);
+    }, 680);
   };
 
   const handleApproveAndCollect = () => {
@@ -369,6 +441,7 @@ export default function App() {
       kvpUsed: kvp,
       masUsed: mas,
       shieldUsed: hasLeadShield && shieldUsed,
+      postureUsed: selectedPosture,
       timestamp: Date.now(),
     };
 
@@ -446,13 +519,17 @@ export default function App() {
   };
 
   const handleStartNewClinic = () => {
+    if (exposeTimerRef.current) window.clearTimeout(exposeTimerRef.current);
     if (developTimerRef.current) window.clearTimeout(developTimerRef.current);
+    setIsExposing(false);
+    setIsDeveloping(false);
     setSave(INITIAL_SAVE);
     setQueue(buildStarterQueue([]));
     setActivePatientId(null);
     setCurrentEvaluation(null);
     setPatientPrepped(false);
     setSelectedRegion('chest');
+    setSelectedPosture('ERECT_PA');
     setSelectedProjection('PA');
     setKvp(110);
     setMas(4);
@@ -660,10 +737,10 @@ export default function App() {
   const lowFilmsWarning = !hasDR && save.films <= 5;
 
   return (
-    <div className="min-h-screen bg-[#0B111A] text-slate-100 flex flex-col">
+    <div className="min-h-screen text-slate-100 flex flex-col">
       {/* Strict 3-Zone Top Bar */}
-      <header className="border-b border-slate-800 bg-[#0D1520] sticky top-0 z-30">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-8">
+      <header className="border-b border-slate-800/80 bg-[#0A111D]/95 sticky top-0 z-30">
+        <div className="max-w-[1480px] mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-8">
           <button
             type="button"
             onClick={() => setScreenMode('TITLE_MENU')}
@@ -744,10 +821,10 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-[1480px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Clinic Telemetry / KPI Strip */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-slate-800 bg-[#131C29] px-4 py-3.5 flex items-center justify-between gap-3">
+          <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-3.5 flex items-center justify-between gap-3">
             <div>
               <div className="text-xs text-slate-400">رصيد العيادة</div>
               <div className="mt-0.5 font-mono-num text-xl font-bold text-emerald-400">
@@ -758,10 +835,10 @@ export default function App() {
           </div>
 
           <div
-            className={`rounded-xl border px-4 py-3.5 flex items-center justify-between gap-3 ${
+            className={`rounded-2xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-3.5 flex items-center justify-between gap-3 ${
               lowFilmsWarning
                 ? 'border-amber-600/70 bg-amber-950/25'
-                : 'border-slate-800 bg-[#131C29]'
+                : 'border-slate-800/90 bg-[#0E1726]'
             }`}
           >
             <div>
@@ -785,7 +862,7 @@ export default function App() {
             />
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-[#131C29] px-4 py-3.5 flex items-center justify-between gap-3">
+          <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-3.5 flex items-center justify-between gap-3">
             <div>
               <div className="text-xs text-slate-400">المرضى المنجزون</div>
               <div className="mt-0.5 font-mono-num text-xl font-bold text-white">
@@ -795,7 +872,7 @@ export default function App() {
             <UserCheck className="w-5 h-5 text-slate-400 shrink-0" />
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-[#131C29] px-4 py-3.5 flex flex-col justify-between gap-2">
+          <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] px-4 py-3.5 flex flex-col justify-between gap-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-slate-400">مستوى العيادة</span>
               <span className="font-mono-num text-xs text-cyan-300">
@@ -935,10 +1012,10 @@ export default function App() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Main Interactive Stage */}
-              <div className="lg:col-span-7 space-y-4">
+              {/* Main Interactive 3D Stage */}
+              <div className="lg:col-span-8 space-y-4">
                 {isDeveloping ? (
-                  <div className="rounded-xl border border-slate-800 bg-[#0E1622] p-12 min-h-[520px] flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] p-12 min-h-[550px] flex flex-col items-center justify-center gap-4 text-center">
                     <div className="w-12 h-12 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
                     <div className="space-y-1">
                       <h3 className="text-base font-bold text-white">
@@ -967,26 +1044,30 @@ export default function App() {
                     onGoToShop={() => setActiveTab('SHOP')}
                   />
                 ) : (
-                  <PatientTableStage
+                  <RadiologyRoom3D
                     patient={activePatient}
                     requestedExam={requestedExam}
                     selectedRegion={selectedRegion}
+                    selectedPosture={selectedPosture}
                     onSelectRegion={setSelectedRegion}
+                    onSelectPosture={handleSelectPosture}
                     shieldUsed={hasLeadShield && shieldUsed}
                     patientPrepped={patientPrepped}
                     onPrepPatient={handlePrepPatient}
                     isExposing={isExposing}
                     filmsRemaining={save.films}
                     ownedUpgrades={save.ownedUpgrades}
+                    kvp={kvp}
+                    mas={mas}
                   />
                 )}
               </div>
 
               {/* Control & Patient Queue Deck */}
-              <div className="lg:col-span-5 space-y-5">
+              <div className="lg:col-span-4 space-y-5">
                 {/* Active Patient Card */}
                 {activePatient && (
-                  <div className="rounded-xl border border-slate-800 bg-[#131C29] p-5 space-y-4">
+                  <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-5 space-y-4">
                     <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
                       <div className="flex items-center gap-3.5 min-w-0">
                         <img
@@ -1031,8 +1112,8 @@ export default function App() {
                       {activePatient.complaintAr}
                     </p>
 
-                    <div className="rounded-lg bg-[#0D141F] border border-slate-800 p-3 flex items-center gap-3.5">
-                      <div className="w-16 h-16 rounded-md overflow-hidden border border-slate-700 bg-[#0A1929] shrink-0">
+                    <div className="rounded-xl bg-[#09101B] border border-slate-800/90 p-3 flex items-center gap-3.5">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-[#0A1929] shrink-0">
                         <img
                           src={requestedExam.imagePath}
                           alt={requestedExam.titleAr}
@@ -1042,9 +1123,15 @@ export default function App() {
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5 text-xs">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-400">الفحص المطلوب:</span>
+                          <span className="text-slate-400">الفحص:</span>
                           <span className="text-sm font-bold text-cyan-300 truncate">
                             {requestedExam.titleAr}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-slate-400">الوضع المطلوب:</span>
+                          <span className="font-semibold text-emerald-300 truncate">
+                            {POSTURE_LABELS_AR[requestedExam.recommendedPosture]}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -1056,20 +1143,13 @@ export default function App() {
                             {requestedExam.masRange[1]} mAs
                           </span>
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-400">الوضعية:</span>
-                          <span className="text-slate-200 truncate">
-                            {requestedExam.regionLabelAr} ·{' '}
-                            {requestedExam.projectionLabelAr}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Exposure Console */}
-                <div className="rounded-xl border border-slate-800 bg-[#131C29] p-5 space-y-5">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#0E1726] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-5 space-y-5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-sm font-bold text-white">
                       <Sliders className="w-4 h-4 text-cyan-400 shrink-0" />
@@ -1092,7 +1172,7 @@ export default function App() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-300 font-medium">
-                        وضعية التصوير (Projection)
+                        إسقاط الأشعة (Projection)
                       </span>
                       <span className="text-cyan-300">
                         {PROJECTION_LABELS_AR[selectedProjection]}
@@ -1103,7 +1183,7 @@ export default function App() {
                         <button
                           key={proj}
                           type="button"
-                          onClick={() => setSelectedProjection(proj)}
+                          onClick={() => handleSelectProjection(proj)}
                           disabled={Boolean(currentEvaluation) || isDeveloping}
                           className={`py-2 px-2 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer transition-colors disabled:opacity-60 ${
                             selectedProjection === proj
@@ -1218,6 +1298,7 @@ export default function App() {
                     onClick={handleExpose}
                     disabled={
                       !activePatient ||
+                      isExposing ||
                       isDeveloping ||
                       Boolean(currentEvaluation) ||
                       (!hasDR &&
@@ -1228,11 +1309,13 @@ export default function App() {
                   >
                     <Zap className="w-4 h-4 shrink-0" />
                     <span>
-                      {!hasDR &&
-                      requestedExam.modality === 'XRAY' &&
-                      save.films <= 0
-                        ? 'نفدت الأفلام — اشترِ كرتوناً من المتجر'
-                        : `إطلاق الأشعة (${REGION_LABELS_AR[selectedRegion]})`}
+                      {isExposing
+                        ? 'جاري إطلاق حزمة الأشعة...'
+                        : !hasDR &&
+                            requestedExam.modality === 'XRAY' &&
+                            save.films <= 0
+                          ? 'نفدت الأفلام — اشترِ كرتوناً من المتجر'
+                          : `إطلاق الأشعة (${REGION_LABELS_AR[selectedRegion]})`}
                     </span>
                   </button>
                 </div>

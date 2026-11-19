@@ -1,5 +1,5 @@
 import React from 'react';
-import {EXAMS, PROJECTION_LABELS_AR} from '../data/radiologyData';
+import {EXAMS} from '../data/radiologyData';
 
 export const ProtocolsView: React.FC = () => {
   return (
@@ -49,7 +49,7 @@ export const ProtocolsView: React.FC = () => {
                 <div>
                   <div className="text-slate-400">الوضعية</div>
                   <div className="mt-0.5 font-medium text-cyan-300 truncate">
-                    {PROJECTION_LABELS_AR[exam.recommendedProjection]}
+                    {exam.postureLabelAr}
                   </div>
                 </div>
                 <div>

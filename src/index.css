@@ -9,7 +9,10 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: #0B111A;
+    background-color: #070C14;
+    background-image:
+      radial-gradient(ellipse 75% 45% at 50% -10%, rgba(14, 116, 144, 0.16), transparent),
+      radial-gradient(ellipse 50% 40% at 85% 20%, rgba(30, 64, 175, 0.08), transparent);
     color: #F1F5F9;
   }
 
@@ -23,13 +26,14 @@
   }
 }
 
-/* Custom range slider for clinical exposure dials */
+/* Precision medical range dials */
 input[type="range"].radiology-slider {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  height: 7px;
   border-radius: 999px;
-  background: #1E293B;
+  background: linear-gradient(90deg, #162235 0%, #1E324B 100%);
+  border: 1px solid rgba(56, 189, 248, 0.16);
   outline: none;
 }
 
@@ -39,14 +43,16 @@ input[type="range"].radiology-slider::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #22D3EE;
-  border: 2px solid #0B111A;
+  background: radial-gradient(circle at 35% 35%, #A5F3FC 0%, #06B6D4 70%);
+  border: 2px solid #070C14;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
   cursor: pointer;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"].radiology-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.12);
+  transform: scale(1.14);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.7);
 }
 
 input[type="range"].radiology-slider::-moz-range-thumb {
@@ -54,6 +60,6 @@ input[type="range"].radiology-slider::-moz-range-thumb {
   height: 20px;
   border-radius: 50%;
   background: #22D3EE;
-  border: 2px solid #0B111A;
+  border: 2px solid #070C14;
   cursor: pointer;
 }
