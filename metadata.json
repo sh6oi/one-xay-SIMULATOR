@@ -1,0 +1,6 @@
+{
+  "name": "محاكاة تقني الأشعة | Radiology Clinic Simulator",
+  "description": "لعبة محاكاة واقعية لعمل تقني الأشعة داخل عيادة التصوير الطبي: استقبال المرضى، ضبط جهاز الأشعة والأفلام، شراء مستلزمات التصوير، وتطوير العيادة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
